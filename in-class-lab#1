@@ -1,0 +1,107 @@
+--Copy the code below into your BigQuery Instance and answer the questions inline - end your queries w/ semi-colons to separate each problem. 
+--Use the table called - `bigquery-public-data.usa_names.usa_1910_current` to answer the first 6 problems. 
+-- 1. select all rows from the usa_1910_current table 
+
+--Code #1
+  select * 
+  from `bigquery-public-data.usa_names.usa_1910_current` as names_data;
+
+-- 1a. What does one row in this table represent? - answer in English.
+-- One row represents the number of times a person was named a specific name in a specific year, state and gender 
+
+-- 2. Limit the previous query to only show 10 rows
+
+--Code #2
+  select * 
+  from `bigquery-public-data.usa_names.usa_1910_current` as names_data
+  limit 10;
+
+-- 3. Select the name and state column from the usa_1910_current table 
+
+--Code #3
+  select name, state 
+  from `bigquery-public-data.usa_names.usa_1910_current` as names_data
+  limit 10;
+
+-- 4. Select all distinct names from the usa_1910_current table who are from Minnesota 
+
+--Code #4
+  select distinct name
+  from `bigquery-public-data.usa_names.usa_1910_current` as names_data
+  where state="MN";
+
+-- 5. Write a query to find the most popular female name in 1917 in Alaska. Return only the name and the number of times that someone had that name. 
+
+--Code #5
+  select name, number
+  from `bigquery-public-data.usa_names.usa_1910_current` as names_data
+  where state='AK' and year=1917 and gender='F'
+  order by number desc
+  limit 1;
+
+--6. Write a query that shows the trend of number of occurences of the name you found in #5 over time.
+
+--Code #6
+  select name, year, number
+  from `bigquery-public-data.usa_names.usa_1910_current` as names_data
+  where name='Mary' and state='AK' --Limited the search to only Alaska
+  order by year asc;
+
+--Use the project thelook_ecommerce for the next 3 problems
+--7. Using the `bigquery-public-data.thelook_ecommerce.order_items` table - select all the columns in this table and add a column called "sale price with tax" - Sales tax is 8% 
+
+-- Code #7
+  select *, sale_price*1.08 as sale_price_with_tax
+  from `bigquery-public-data.thelook_ecommerce.order_items` as order_items;
+
+--8. In preparation for a tax-holiday, you need to create a new column "Sale price with tax"
+-- using a case statement that adds tax to the sale price if the item costs more than 100$ - 
+--if it is less than 100$ it will be tax-free. 
+
+--Code #8
+  select *,
+  case 
+    when sale_price>100 then sale_price*1.08
+    else sale_price
+  end as sale_price_with_tax
+  from `bigquery-public-data.thelook_ecommerce.order_items` as order_items
+  order by sale_price desc;
+
+--9. select a new column based on the order status from the orders table, using a case statement to classify orders as
+-- "Complete" if "Returned", "Cancelled" or "Complete". Classify as "In-Process" if "Processing" or "Shipped". 
+--Return all the columns in the order table + this new column. 
+--Use this table: `bigquery-public-data.thelook_ecommerce.orders`
+
+-- Code #9
+  select *,
+  case 
+    when status="Returned" or status="Cancelled" or status="Complete" then "Complete" 
+    when status="Processing" or status="Shipped" then "In-Process"
+    else null
+  end as adjusted_status
+  from `bigquery-public-data.thelook_ecommerce.order_items` as order_items;
+
+--10. Create your own question that you'd like to anaswer using a WHERE clause, a CASE statement and a mathematical operator. 
+--Answer the question using SQL 
+
+-- Question: Determine whether an order was shipped within 48 hours, if yes, label it "Fast Track", and if more than 48 hours, mark as "Standard". This does not apply to orders that were not delivered. Based on this, find if there is a correlation between sale_price and delivery speed. 
+
+-- Code #10
+  with Correlation_Data as 
+    (select sale_price, created_at, shipped_at, delivered_at,timestamp_diff(delivered_at,shipped_at,hour) as time_to_delivery,
+    case
+      when timestamp_diff(delivered_at,shipped_at,hour)<48 then "Fast track"
+      when delivered_at is null then "Does not Apply"
+      else "Standard"
+    end as delivery_speed
+    from `bigquery-public-data.thelook_ecommerce.order_items` as order_items)
+
+  select delivery_speed, sale_price,
+  case
+    when sale_price>100 and delivery_speed="Fast track" then "Expensive and Fast track"
+    when sale_price>100 and delivery_speed="Standard" then "Expensive and Standard"
+    else null
+  end as Delivery_Sale_Price_Correlation,
+  from Correlation_Data
+  where (delivery_speed="Fast track" or delivery_speed="Standard") and sale_price>100;
+  -- Ideally the perfect result would also display the counts of "Expensive and Fast track" and "Expensive and Standard" but I am not sure how to do that yet
