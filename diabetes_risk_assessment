@@ -1,0 +1,54 @@
+SELECT * FROM `personal-402622.sql_practice.diabetes_risk` LIMIT 1000;
+select count (*)
+FROM `personal-402622.sql_practice.diabetes_risk`;
+
+-- Find the trend in Pregnancy vs. Outcomes
+select Pregnancies, count(Pregnancies) as pregnancy_counts, count(Outcome) as outcome_is_pos
+FROM `personal-402622.sql_practice.diabetes_risk`
+where outcome=1
+group by Pregnancies
+order by Pregnancies asc;
+
+-- Find prediabetes levels of Glucose tolerance values and group by occurance of diabetes to check correlation. 
+
+-- select avg(Glucose)
+-- FROM `personal-402622.sql_practice.diabetes_risk`
+-- where Glucose <>0;
+
+with gtt_outcome as (
+select outcome, glucose,
+case
+  when Glucose>140 and Glucose<199 then 1
+  else 0
+end as above_avg_glucose
+FROM `personal-402622.sql_practice.diabetes_risk`
+)
+select outcome, count(above_avg_glucose) as gtt_outcome_corr
+from gtt_outcome
+where above_avg_glucose=1
+group by Outcome;
+
+-- A positive correlation between prediabetes GTT and Outcome
+-- 140-199 mmHg/dL levels of GTT may not be accurate for diagnosing Diabetes, or may have not been the primary criteria here
+
+-- Find trend in the occurance of diabetes by age (by decade) and percentage of postivity
+
+with AgeGroup_Outcome as (
+select Id, Age, Outcome,
+case
+when Age>=20 and Age<30 then '20-29'
+when Age>=30 and Age<40 then '30-39'
+when Age>=40 and Age<50 then '40-49'
+when Age>=50 and Age<60 then '50-59'
+when Age>=60 and Age<70 then '60-69'
+else "greater_than_69"
+end as Age_groups
+FROM `personal-402622.sql_practice.diabetes_risk`
+)
+select Age_groups, count(Id) as no_pt_included, count(case when Outcome = 1 then 1 end) as outcome_1, 
+round((count(case when Outcome = 1 then 1 end) / count(Id)) * 100,2) as percentage_outcome_1
+from AgeGroup_Outcome
+group by Age_groups
+order by Age_groups asc;
+
+-- Ages 50-59 have the highest diabetes rate, at 57.75%
