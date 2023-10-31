@@ -1,54 +1,144 @@
-SELECT * FROM `personal-402622.sql_practice.diabetes_risk` LIMIT 1000;
-select count (*)
-FROM `personal-402622.sql_practice.diabetes_risk`;
-
--- Find the trend in Pregnancy vs. Outcomes
-select Pregnancies, count(Pregnancies) as pregnancy_counts, count(Outcome) as outcome_is_pos
-FROM `personal-402622.sql_practice.diabetes_risk`
-where outcome=1
-group by Pregnancies
-order by Pregnancies asc;
-
--- Find prediabetes levels of Glucose tolerance values and group by occurance of diabetes to check correlation. 
-
--- select avg(Glucose)
--- FROM `personal-402622.sql_practice.diabetes_risk`
--- where Glucose <>0;
-
-with gtt_outcome as (
-select outcome, glucose,
-case
-  when Glucose>140 and Glucose<199 then 1
-  else 0
-end as above_avg_glucose
-FROM `personal-402622.sql_practice.diabetes_risk`
-)
-select outcome, count(above_avg_glucose) as gtt_outcome_corr
-from gtt_outcome
-where above_avg_glucose=1
-group by Outcome;
-
--- A positive correlation between prediabetes GTT and Outcome
--- 140-199 mmHg/dL levels of GTT may not be accurate for diagnosing Diabetes, or may have not been the primary criteria here
-
--- Find trend in the occurance of diabetes by age (by decade) and percentage of postivity
-
-with AgeGroup_Outcome as (
-select Id, Age, Outcome,
-case
-when Age>=20 and Age<30 then '20-29'
-when Age>=30 and Age<40 then '30-39'
-when Age>=40 and Age<50 then '40-49'
-when Age>=50 and Age<60 then '50-59'
-when Age>=60 and Age<70 then '60-69'
-else "greater_than_69"
-end as Age_groups
-FROM `personal-402622.sql_practice.diabetes_risk`
-)
-select Age_groups, count(Id) as no_pt_included, count(case when Outcome = 1 then 1 end) as outcome_1, 
-round((count(case when Outcome = 1 then 1 end) / count(Id)) * 100,2) as percentage_outcome_1
-from AgeGroup_Outcome
-group by Age_groups
-order by Age_groups asc;
-
--- Ages 50-59 have the highest diabetes rate, at 57.75%
+SELECT
+  *
+FROM
+  `personal-402622.sql_practice.diabetes_risk`
+LIMIT
+  1000;
+SELECT
+  count (*)
+FROM
+  `personal-402622.sql_practice.diabetes_risk`;
+  -- Find the trend in Pregnancy vs. Outcomes
+SELECT
+  Pregnancies,
+  COUNT(Pregnancies) AS pregnancy_counts,
+  COUNT(Outcome) AS outcome_is_pos
+FROM
+  `personal-402622.sql_practice.diabetes_risk`
+WHERE
+  Outcome=1
+GROUP BY
+  Pregnancies
+ORDER BY
+  Pregnancies ASC;
+  -- Find prediabetes levels of Glucose tolerance values and group by occurance of diabetes to check correlation.
+  -- select avg(Glucose)
+  -- FROM `personal-402622.sql_practice.diabetes_risk`
+  -- where Glucose <>0;
+WITH
+  gtt_outcome AS (
+  SELECT
+    outcome,
+    glucose,
+    CASE
+      WHEN Glucose>140 AND Glucose<199 THEN 1
+    ELSE
+    0
+  END
+    AS above_avg_glucose
+  FROM
+    `personal-402622.sql_practice.diabetes_risk` )
+SELECT
+  outcome,
+  COUNT(above_avg_glucose) AS gtt_outcome_corr
+FROM
+  gtt_outcome
+WHERE
+  above_avg_glucose=1
+GROUP BY
+  Outcome;
+  -- A positive correlation between prediabetes GTT and Outcome
+  -- 140-199 mmHg/dL levels of GTT may not be accurate for diagnosing Diabetes, or may have not been the primary criteria here
+  -- Find trend in the occurance of diabetes by age (by decade) and percentage of postivity
+WITH
+  AgeGroup_Outcome AS (
+  SELECT
+    Id,
+    Age,
+    Outcome,
+    CASE
+      WHEN Age>=20 AND Age<30 THEN '20-29'
+      WHEN Age>=30
+    AND Age<40 THEN '30-39'
+      WHEN Age>=40 AND Age<50 THEN '40-49'
+      WHEN Age>=50
+    AND Age<60 THEN '50-59'
+      WHEN Age>=60 AND Age<70 THEN '60-69'
+    ELSE
+    "greater_than_69"
+  END
+    AS Age_groups
+  FROM
+    `personal-402622.sql_practice.diabetes_risk` )
+SELECT
+  Age_groups,
+  COUNT(Id) AS no_pt_included,
+  COUNT(CASE
+      WHEN Outcome = 1 THEN 1
+  END
+    ) AS outcome_1,
+  ROUND((COUNT(CASE
+          WHEN Outcome = 1 THEN 1
+      END
+        ) / COUNT(Id)) * 100,2) AS percentage_outcome_1
+FROM
+  AgeGroup_Outcome
+GROUP BY
+  Age_groups
+ORDER BY
+  Age_groups ASC;
+  -- Ages 50-59 have the highest diabetes rate, at 57.75%
+  -- Find the relationship between skin thickness and outcome of diabetes, using 4.9mm to 21mm as the normal range
+SELECT
+  COUNT(SkinThickness) AS ST_Dist,
+  COUNT(CASE
+      WHEN Outcome=1 THEN 1
+    ELSE
+    NULL
+  END
+    ) AS count_pos_outcome,
+  COUNT(CASE
+      WHEN Outcome=1 THEN 1
+    ELSE
+    NULL
+  END
+    )/COUNT(SkinThickness)*100 AS ST_Diab_Corr,
+  CASE
+    WHEN SkinThickness>4.9 AND SkinThickness<=21 THEN 'Normal'
+    WHEN SkinThickness>21 THEN 'High'
+  ELSE
+  NULL
+END
+  AS Type_Thickness
+FROM
+  `personal-402622.sql_practice.diabetes_risk`
+GROUP BY
+  Type_Thickness;
+  --Find correlation between High diastolic pressure and presence of Diabetes
+SELECT
+  COUNT(BloodPressure) AS BP_Dist,
+  SUM(CASE
+      WHEN Outcome=1 THEN 1
+    ELSE
+    NULL
+  END
+    ) AS pos_outcome,
+  COUNT(CASE
+      WHEN Outcome=1 THEN 1
+    ELSE
+    NULL
+  END
+    )/COUNT(BloodPressure)*100 AS percent_corr,
+  CASE
+    WHEN BloodPressure<=60 AND BloodPressure>=24 THEN 'Low'
+    WHEN BloodPressure<=80
+  AND BloodPressure>60 THEN 'Normal'
+    WHEN BloodPressure>80 THEN 'High'
+  ELSE
+  NULL
+END
+  AS BloodPressure_type
+FROM
+  `personal-402622.sql_practice.diabetes_risk`
+GROUP BY
+  BloodPressure_type
